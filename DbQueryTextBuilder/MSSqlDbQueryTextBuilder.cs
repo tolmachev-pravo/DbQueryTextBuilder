@@ -1,6 +1,6 @@
 ﻿namespace DbQueryTextBuilder
 {
-    public class MSSqlDbQueryTextBuilder : BaseDbQueryTextBuilder
+	public class MSSqlDbQueryTextBuilder : BaseDbQueryTextBuilder
 	{
 		protected override string ValueQueryByType<T>(T value)
 		{

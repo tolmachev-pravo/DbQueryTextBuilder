@@ -15,12 +15,84 @@ namespace DbQueryTextBuilder
 			_state = DbQueryTextBuilderState.None;
 		}
 
-		public IDbQueryTextBuilder CloseBlock()
+		protected abstract string MapValueType(Type valueType);
+		protected abstract string ValueQueryByType<T>(T value);
+
+		public abstract IDbQueryTextBuilder OffsetLimit(int offset, int limit);
+
+		public override string ToString()
 		{
-			_stringBuilder.Append(")");
-			_state = DbQueryTextBuilderState.CloseBlock;
+			return _stringBuilder.ToString();
+		}
+
+		#region Operators
+
+		public IDbQueryTextBuilder OpenBlock() => Operator("(", state: DbQueryTextBuilderState.OpenBlock);
+
+		public IDbQueryTextBuilder CloseBlock() => Operator(")", isSpace: false, state: DbQueryTextBuilderState.CloseBlock);
+
+		public IDbQueryTextBuilder From() => Operator("FROM", isNewLine: true, state: DbQueryTextBuilderState.From);
+
+		public IDbQueryTextBuilder GroupBy() => Operator("GROUP BY", isNewLine: true, state: DbQueryTextBuilderState.GroupBy);
+
+		public IDbQueryTextBuilder Select() => Operator("SELECT", isNewLine: true, state: DbQueryTextBuilderState.Select);
+
+		public IDbQueryTextBuilder End() => Operator(";", isSpace: false);
+
+		public IDbQueryTextBuilder Not() => Operator("NOT");
+
+		public IDbQueryTextBuilder Is() => Operator("IS");
+
+		public IDbQueryTextBuilder Null() => Operator("NULL");
+
+		public IDbQueryTextBuilder In() => Operator("IN");
+
+		public IDbQueryTextBuilder Exists() => Operator("EXISTS");
+
+		public IDbQueryTextBuilder Where() => Operator("WHERE", isNewLine: true, state: DbQueryTextBuilderState.Where);
+
+		public IDbQueryTextBuilder And() => Operator("AND", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.And);
+
+		public IDbQueryTextBuilder Or() => Operator("OR", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.Or);
+
+		public IDbQueryTextBuilder On() => Operator("ON", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.On);
+
+		public IDbQueryTextBuilder Equals() => Operator("=", state: DbQueryTextBuilderState.Equals);
+
+		public IDbQueryTextBuilder OrderBy() => Operator("ORDER BY", isNewLine: true, state: DbQueryTextBuilderState.OrderBy);
+
+		public IDbQueryTextBuilder Desc() => Operator("DESC");
+
+		public IDbQueryTextBuilder Operator(
+			string name,
+			bool isNewLine = false,
+			bool isTab = false,
+			bool isSpace = true,
+			DbQueryTextBuilderState? state = null)
+		{
+			if (isNewLine)
+			{
+				_stringBuilder.AppendLine();
+				isSpace = false;
+			}
+			if (isTab)
+			{
+				_stringBuilder.Append('\t');
+				isSpace = false;
+			}
+			if (isSpace)
+			{
+				_stringBuilder.Append(' ');
+			}
+			_stringBuilder.Append(name);
+			if (state.HasValue)
+			{
+				_state = state.Value;
+			}
 			return this;
 		}
+
+		#endregion
 
 		public IDbQueryTextBuilder Column(string columnName, bool quote = true)
 		{
@@ -30,21 +102,6 @@ namespace DbQueryTextBuilder
 		public IDbQueryTextBuilder Column(string tableName, string columnName)
 		{
 			return Column($"{tableName.Quote()}.{columnName.Quote()}", quote: false);
-		}
-
-		public IDbQueryTextBuilder From()
-		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.Append("FROM");
-			return this;
-		}
-
-		public IDbQueryTextBuilder GroupBy()
-		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.AppendLine("GROUP BY ");
-			_state = DbQueryTextBuilderState.GroupBy;
-			return this;
 		}
 
 		public IDbQueryTextBuilder InsertInto(string tableName, bool quote = true)
@@ -71,21 +128,6 @@ namespace DbQueryTextBuilder
 			return Max($"{tableName.Quote()}.{columnName.Quote()}", quote: false);
 		}
 
-		public IDbQueryTextBuilder OpenBlock()
-		{
-			_stringBuilder.Append(" (");
-			_state = DbQueryTextBuilderState.OpenBlock;
-			return this;
-		}
-
-		public IDbQueryTextBuilder Select()
-		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.Append("SELECT");
-			_state = DbQueryTextBuilderState.Select;
-			return this;
-		}
-
 		public IDbQueryTextBuilder InternalColumn(string columnName)
 		{
 			switch (_state)
@@ -93,7 +135,6 @@ namespace DbQueryTextBuilder
 				case DbQueryTextBuilderState.Select:
 				case DbQueryTextBuilderState.GroupBy:
 				case DbQueryTextBuilderState.Where:
-				case DbQueryTextBuilderState.On:
 				case DbQueryTextBuilderState.OrderBy:
 					_stringBuilder.AppendLine();
 					_stringBuilder.Append('\t');
@@ -103,7 +144,9 @@ namespace DbQueryTextBuilder
 					_stringBuilder.Append('\t');
 					break;
 				case DbQueryTextBuilderState.And:
+				case DbQueryTextBuilderState.Or:
 				case DbQueryTextBuilderState.Equals:
+				case DbQueryTextBuilderState.On:
 					_stringBuilder.Append(' ');
 					break;
 			}
@@ -118,15 +161,6 @@ namespace DbQueryTextBuilder
 			return this;
 		}
 
-		public IDbQueryTextBuilder End()
-		{
-			_stringBuilder.Append(';');
-			return this;
-		}
-
-		protected abstract string MapValueType(Type valueType);
-		protected abstract string ValueQueryByType<T>(T value);
-
 		public IDbQueryTextBuilder ColumnValue<T>(T value)
 		{
 			var valueQuery = ValueQueryByType(value);
@@ -140,37 +174,7 @@ namespace DbQueryTextBuilder
 			return this;
 		}
 
-		public IDbQueryTextBuilder Where()
-		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.Append("WHERE");
-			_state = DbQueryTextBuilderState.Where;
-			return this;
-		}
-
-		public IDbQueryTextBuilder IsNotNull()
-		{
-			_stringBuilder.Append(" IS NOT NULL");
-			return this;
-		}
-
-		public IDbQueryTextBuilder Is()
-		{
-			_stringBuilder.Append(" IS");
-			return this;
-		}
-
-		public IDbQueryTextBuilder Null()
-		{
-			_stringBuilder.Append(" NULL");
-			return this;
-		}
-
-		public IDbQueryTextBuilder In()
-		{
-			_stringBuilder.Append(" IN");
-			return this;
-		}
+		public IDbQueryTextBuilder IsNotNull() => Is().Not().Null();
 
 		public IDbQueryTextBuilder In<T>(IEnumerable<T> values)
 		{
@@ -196,39 +200,14 @@ namespace DbQueryTextBuilder
 			}
 		}
 
-		public IDbQueryTextBuilder And()
-		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.Append('\t');
-			_stringBuilder.Append("AND");
-			_state = DbQueryTextBuilderState.And;
-			return this;
-		}
-
-		public IDbQueryTextBuilder Or()
-		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.Append('\t');
-			_stringBuilder.Append("OR");
-			_state = DbQueryTextBuilderState.And;
-			return this;
-		}
-
-		public IDbQueryTextBuilder And(string tableName, string columnName)
-		{
-			And();
-			Column(tableName, columnName);
-			return this;
-		}
+		public IDbQueryTextBuilder And(string tableName, string columnName) => And().Column(tableName, columnName);
 
 		public IDbQueryTextBuilder Intersect(Func<bool>? condition = null)
 		{
 			if (condition is null
 				|| condition() == true)
 			{
-				_stringBuilder.AppendLine();
-				_stringBuilder.Append("INTERSECT");
-				_state = DbQueryTextBuilderState.Intersect;
+				return Operator("INTERSECT", isNewLine: true, state: DbQueryTextBuilderState.Intersect);
 			}
 			return this;
 		}
@@ -238,9 +217,7 @@ namespace DbQueryTextBuilder
 			if (condition is null
 				|| condition() == true)
 			{
-				_stringBuilder.AppendLine();
-				_stringBuilder.Append("UNION ALL");
-				_state = DbQueryTextBuilderState.Union;
+				return Operator("UNION ALL", isNewLine: true, state: DbQueryTextBuilderState.Union);
 			}
 			return this;
 		}
@@ -275,20 +252,6 @@ namespace DbQueryTextBuilder
 			return this;
 		}
 
-		public IDbQueryTextBuilder On()
-		{
-			_stringBuilder.Append(" ON");
-			_state = DbQueryTextBuilderState.On;
-			return this;
-		}
-
-		public IDbQueryTextBuilder Equals()
-		{
-			_stringBuilder.Append(" =");
-			_state = DbQueryTextBuilderState.Equals;
-			return this;
-		}
-
 		public IDbQueryTextBuilder Append(Action<IDbQueryTextBuilder> action, Func<bool>? condition = null)
 		{
 			if (condition is null
@@ -312,25 +275,9 @@ namespace DbQueryTextBuilder
 			return this;
 		}
 
-		public abstract IDbQueryTextBuilder OffsetLimit(int offset, int limit);
-
-		public IDbQueryTextBuilder OrderBy()
+		public IDbQueryTextBuilder Parameter(string name)
 		{
-			_stringBuilder.AppendLine();
-			_stringBuilder.Append("ORDER BY");
-			_state = DbQueryTextBuilderState.OrderBy;
-			return this;
-		}
-
-		public IDbQueryTextBuilder Desc()
-		{
-			_stringBuilder.Append(" DESC");
-			return this;
-		}
-
-		public override string ToString()
-		{
-			return _stringBuilder.ToString();
+			return Column($"@{name}", quote: false);
 		}
 	}
 }

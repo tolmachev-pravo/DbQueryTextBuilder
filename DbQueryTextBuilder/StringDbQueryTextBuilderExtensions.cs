@@ -9,6 +9,13 @@
 				: value;
 		}
 
+		public static string SingleQuote(this string value, bool quote = true)
+		{
+			return quote
+				? $@"'{value}'"
+				: value;
+		}
+
 		public static string ToOneLine(this string value)
 		{
 			return value

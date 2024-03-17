@@ -1,6 +1,6 @@
 ﻿namespace DbQueryTextBuilder
 {
-    public class PostgreSqlDbQueryTextBuilder : BaseDbQueryTextBuilder
+	public class PostgreSqlDbQueryTextBuilder : BaseDbQueryTextBuilder
 	{
 		protected override string ValueQueryByType<T>(T value)
 		{

@@ -13,6 +13,7 @@
 		As,
 		GroupBy,
 		And,
+		Or,
 		Intersect,
 		Union,
 		Equals,

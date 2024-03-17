@@ -42,5 +42,14 @@
 		IDbQueryTextBuilder OffsetLimit(int offset, int limit);
 		IDbQueryTextBuilder OrderBy();
 		IDbQueryTextBuilder Desc();
+		IDbQueryTextBuilder Parameter(string name);
+		IDbQueryTextBuilder Not();
+		IDbQueryTextBuilder Exists();
+		IDbQueryTextBuilder Operator(
+			string name,
+			bool isNewLine = false,
+			bool isTab = false,
+			bool isSpace = true,
+			DbQueryTextBuilderState? state = null);
 	}
 }
