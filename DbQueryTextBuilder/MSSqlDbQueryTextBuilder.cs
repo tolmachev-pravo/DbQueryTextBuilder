@@ -11,6 +11,8 @@
 				case bool boolValue:
 					var formatValue = boolValue ? "true" : "false";
 					return string.Format("'{0}'", formatValue);
+				case string stringValue:
+					return string.Format("N'{0}'", stringValue.Replace("'", "''"));
 				default:
 					return string.Format("'{0}'", value);
 			}

@@ -12,7 +12,7 @@
 					var formatValue = boolValue ? "true" : "false";
 					return string.Format("'{0}'", formatValue);
 				case string stringValue:
-					return string.Format("'{0}'", stringValue);
+					return string.Format("E'{0}'", stringValue.Replace(@"\", @"\\").Replace("'", @"\'"));
 				default:
 					var type = MapValueType(typeof(T));
 					return string.Format("CAST('{0}' AS {1})", value, type);
