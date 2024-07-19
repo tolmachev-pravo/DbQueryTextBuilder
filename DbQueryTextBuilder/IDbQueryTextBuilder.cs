@@ -4,6 +4,7 @@
 	{
 		DbQueryTextBuilderState State { get; }
 
+		string FormatValue<T>(T value);
 		IDbQueryTextBuilder InsertInto(string tableName, bool quote = true);
 		IDbQueryTextBuilder InsertInto(string tableSchema, string tableName);
 		IDbQueryTextBuilder Select();
@@ -24,13 +25,14 @@
 		IDbQueryTextBuilder IsNotNull();
 		IDbQueryTextBuilder In<T>(IEnumerable<T> values);
 		IDbQueryTextBuilder In();
-		IDbQueryTextBuilder And();
-		IDbQueryTextBuilder Or();
+		IDbQueryTextBuilder And(Func<bool>? condition = null);
+		IDbQueryTextBuilder Or(Func<bool>? condition = null);
 		IDbQueryTextBuilder And(string tableName, string columnName);
 		IDbQueryTextBuilder Intersect(Func<bool>? condition = null);
 		IDbQueryTextBuilder UnionAll(Func<bool>? condition = null);
 		IDbQueryTextBuilder Append(string value);
 		IDbQueryTextBuilder AppendLine(string value);
+		IDbQueryTextBuilder AppendFormat(string format, params object?[] arguments);
 		IDbQueryTextBuilder InnerJoin(string tableSchema, string tableName);
 		IDbQueryTextBuilder LeftJoin(string tableSchema, string tableName);
 		IDbQueryTextBuilder On();

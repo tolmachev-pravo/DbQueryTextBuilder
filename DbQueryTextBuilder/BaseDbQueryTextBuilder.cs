@@ -16,7 +16,7 @@ namespace DbQueryTextBuilder
 		}
 
 		protected abstract string MapValueType(Type valueType);
-		protected abstract string ValueQueryByType<T>(T value);
+		public abstract string FormatValue<T>(T value);
 
 		public abstract IDbQueryTextBuilder OffsetLimit(int offset, int limit);
 
@@ -51,9 +51,11 @@ namespace DbQueryTextBuilder
 
 		public IDbQueryTextBuilder Where() => Operator("WHERE", isNewLine: true, state: DbQueryTextBuilderState.Where);
 
-		public IDbQueryTextBuilder And() => Operator("AND", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.And);
+		public IDbQueryTextBuilder And(Func<bool>? condition = null) =>
+			ConditionOperator("AND", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.And, condition: condition);
 
-		public IDbQueryTextBuilder Or() => Operator("OR", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.Or);
+		public IDbQueryTextBuilder Or(Func<bool>? condition = null) =>
+			ConditionOperator("OR", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.Or, condition: condition);
 
 		public IDbQueryTextBuilder On() => Operator("ON", isNewLine: true, isTab: true, state: DbQueryTextBuilderState.On);
 
@@ -62,6 +64,22 @@ namespace DbQueryTextBuilder
 		public IDbQueryTextBuilder OrderBy() => Operator("ORDER BY", isNewLine: true, state: DbQueryTextBuilderState.OrderBy);
 
 		public IDbQueryTextBuilder Desc() => Operator("DESC");
+
+		public IDbQueryTextBuilder ConditionOperator(
+			string name,
+			bool isNewLine = false,
+			bool isTab = false,
+			bool isSpace = true,
+			DbQueryTextBuilderState? state = null,
+			Func<bool>? condition = null)
+		{
+			if (condition is null
+				|| condition() == true)
+			{
+				Operator(name, isNewLine, isTab, isSpace, state);
+			}
+			return this;
+		}
 
 		public IDbQueryTextBuilder Operator(
 			string name,
@@ -163,7 +181,7 @@ namespace DbQueryTextBuilder
 
 		public IDbQueryTextBuilder ColumnValue<T>(T value)
 		{
-			var valueQuery = ValueQueryByType(value);
+			var valueQuery = FormatValue(value);
 			return Column(valueQuery, quote: false);
 		}
 
@@ -180,7 +198,7 @@ namespace DbQueryTextBuilder
 		{
 			In();
 			OpenBlock();
-			var valueQueries = values.Select(ValueQueryByType);
+			var valueQueries = values.Select(FormatValue);
 			AppendJoin(", ", valueQueries);
 			CloseBlock();
 			return this;
@@ -202,25 +220,11 @@ namespace DbQueryTextBuilder
 
 		public IDbQueryTextBuilder And(string tableName, string columnName) => And().Column(tableName, columnName);
 
-		public IDbQueryTextBuilder Intersect(Func<bool>? condition = null)
-		{
-			if (condition is null
-				|| condition() == true)
-			{
-				return Operator("INTERSECT", isNewLine: true, state: DbQueryTextBuilderState.Intersect);
-			}
-			return this;
-		}
+		public IDbQueryTextBuilder Intersect(Func<bool>? condition = null) =>
+			ConditionOperator("INTERSECT", isNewLine: true, state: DbQueryTextBuilderState.Intersect, condition: condition);
 
-		public IDbQueryTextBuilder UnionAll(Func<bool>? condition = null)
-		{
-			if (condition is null
-				|| condition() == true)
-			{
-				return Operator("UNION ALL", isNewLine: true, state: DbQueryTextBuilderState.Union);
-			}
-			return this;
-		}
+		public IDbQueryTextBuilder UnionAll(Func<bool>? condition = null) =>
+			ConditionOperator("UNION ALL", isNewLine: true, state: DbQueryTextBuilderState.Union, condition: condition);
 
 		public IDbQueryTextBuilder Append(string value)
 		{
@@ -231,6 +235,12 @@ namespace DbQueryTextBuilder
 		public IDbQueryTextBuilder AppendLine(string value)
 		{
 			_stringBuilder.AppendLine(value);
+			return this;
+		}
+
+		public IDbQueryTextBuilder AppendFormat(string format, params object?[] arguments)
+		{
+			_stringBuilder.AppendFormat(format, arguments);
 			return this;
 		}
 

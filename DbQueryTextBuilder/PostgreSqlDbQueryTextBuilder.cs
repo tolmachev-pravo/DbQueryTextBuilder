@@ -2,7 +2,7 @@
 {
 	public class PostgreSqlDbQueryTextBuilder : BaseDbQueryTextBuilder
 	{
-		protected override string ValueQueryByType<T>(T value)
+		public override string FormatValue<T>(T value)
 		{
 			switch (value)
 			{
